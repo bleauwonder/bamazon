@@ -18,14 +18,13 @@ var connection = mysql.createConnection({
 connection.connect(function(err) {
   if (err) throw err;
 //   console.log("connected as id " + connection.threadId + "\n");
-    runSearch();
-  
+    readProducts();
 });
 
-
+runSearch();
 
 function runSearch() {
-    readProducts();
+
     inquirer
         .prompt({
             name: "action",
@@ -43,8 +42,9 @@ function runSearch() {
                     itemIdSearch();
                     break;
             
-                  case "I'm good for now":
+                  case "Nah, I'm good right now.":
                     console.log("We'll catch up next time, go make some money.");
+                    connection.end();
                     break;
             
                   case "exit":
@@ -61,53 +61,92 @@ function readProducts() {
       res.forEach(element => {
         console.log("\n-------------------------------------------------\n" + element.item_id + " " + element.product_name + " " + "$" + element.price + "\n-------------------------------------------------\n");
     });
-      connection.end();
+
     });
   }
 
-  function itemIdSearch() {
+function itemIdSearch() {
     inquirer
     .prompt([
         {
             type: "input",
-            name: "itemId",
+            name: "item_id",
             message: "What is the item ID of the home product you'd like to buy?",
         }
     ]).then(answer => {
         console.log("\n---------------------------------------------------------");
-        var product = answer.itemId;
+        var item_id = answer.item_id;
         connection.query(
-            "SELECT item_id, product_name, price FROM products WHERE item_id",
-            { product : product},
+            "SELECT item_id, product_name, price FROM products WHERE ?",
+            { item_id : item_id},
             function(err, res) {
                 if (err) throw err;
                 res.forEach(element => {
                     console.log(element.item_id + " " + element.product_name + " " + "$" + element.price + "\n---------------------------------------------------------\n");
 
                 });
-
+            correctItem();
             }
         )
     })
 };
+
+function correctItem() {
+    inquirer
+        .prompt({
+            name: "action",
+            type: "list",
+            message: "Is this the correct item?",
+            choices: [
+                "Yes! It's the correct item!",
+                "Nah, I don't want it anymore.",
+                "exit"
+            ]
+        }).then(function(answer) {
+    
+            switch(answer.action) {
+                case "Yes! It's the correct item!":
+                    amountOfItem();
+                    break;
+            
+                  case "Nah, I don't want it anymore.":
+                    console.log("Well, we'll be here when you do.");
+                    connection.end();
+                    break;
+            }
+        });
+}
 
 function amountOfItem() {
     inquirer
     .prompt([
         {
             type: "input",
-            name: "amount",
+            name: "stock_quantity",
             message: "How many units of this product would you like to buy?",
         }
     ]).then(answer => {
-        console.log("\n---------------------------------------------------------");
-        var product = answer.item_id;
+        var stock_quantity = answer.stock_quantity;
         connection.query(
-            "SELECT item_id, product_name, price FROM products WHERE item_id",
-            // { song : song},
+            "SELECT item_id, product_name, price FROM products WHERE ?",
+            { stock_quantity : stock_quantity},
             function(err, res) {
                 if (err) throw err;
                 res.forEach(element => {
+                    if (answer.stock_quantity > element.stock_quantity) {
+                        connection.query("UPDATE products SET ? WHERE ?", [
+                            {
+                                stock_quantity: stock_quantity - answer.stock_quantity,
+                            },
+                        ],
+                        )
+                        console.log("Thank you for your order! Your total is " + (element.price * element.stock_quantity));
+                    }
+                    else {
+                        console.log("Insuffient Inventory!");
+                        connection.end();
+                    }
+                    
                     console.log(element.item_id + " " + element.product_name + " " + "$" + element.price + "\n---------------------------------------------------------\n");
 
                 });
