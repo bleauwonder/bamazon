@@ -23,7 +23,7 @@ INSERT INTO products (product_name, department_name, price, stock_quantity)
 VALUES ("chrome toilet paper holder", "kitchen and bath", 11.79, 200);
 
 INSERT INTO products (product_name, department_name, price, stock_quantity)
-VALUES ("kraken shower curtain", "kitchen and bath", 15.90, 4);
+VALUES ("kraken shower curtain", "kitchen and bath", 15.91, 4);
 
 INSERT INTO products (product_name, department_name, price, stock_quantity)
 VALUES ("mason jar toothbrush holder", "kitchen and bath", 10.95, 48);
