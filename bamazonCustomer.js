@@ -17,14 +17,10 @@ var connection = mysql.createConnection({
 
 connection.connect(function(err) {
   if (err) throw err;
-//   console.log("connected as id " + connection.threadId + "\n");
     readProducts();
 });
 
-runSearch();
-
 function runSearch() {
-
     inquirer
         .prompt({
             name: "action",
@@ -61,9 +57,9 @@ function readProducts() {
       res.forEach(element => {
         console.log("\n-------------------------------------------------\n" + element.item_id + " " + element.product_name + " " + "$" + element.price + "\n-------------------------------------------------\n");
     });
-
+    runSearch();
     });
-  }
+}
 
 function itemIdSearch() {
     inquirer
@@ -75,7 +71,7 @@ function itemIdSearch() {
         }
     ]).then(answer => {
         console.log("\n---------------------------------------------------------");
-        var item_id = answer.item_id;
+        item_id = answer.item_id;
         connection.query(
             "SELECT item_id, product_name, price FROM products WHERE ?",
             { item_id : item_id},
@@ -83,39 +79,14 @@ function itemIdSearch() {
                 if (err) throw err;
                 res.forEach(element => {
                     console.log(element.item_id + " " + element.product_name + " " + "$" + element.price + "\n---------------------------------------------------------\n");
-
                 });
-            correctItem();
+            amountOfItem();
             }
         )
     })
 };
 
-function correctItem() {
-    inquirer
-        .prompt({
-            name: "action",
-            type: "list",
-            message: "Is this the correct item?",
-            choices: [
-                "Yes! It's the correct item!",
-                "Nah, I don't want it anymore.",
-                "exit"
-            ]
-        }).then(function(answer) {
-    
-            switch(answer.action) {
-                case "Yes! It's the correct item!":
-                    amountOfItem();
-                    break;
-            
-                  case "Nah, I don't want it anymore.":
-                    console.log("Well, we'll be here when you do.");
-                    connection.end();
-                    break;
-            }
-        });
-}
+var item_id;
 
 function amountOfItem() {
     inquirer
@@ -126,29 +97,29 @@ function amountOfItem() {
             message: "How many units of this product would you like to buy?",
         }
     ]).then(answer => {
-        var stock_quantity = answer.stock_quantity;
+        // var stock_quantity = answer.stock_quantity;
         connection.query(
-            "SELECT item_id, product_name, price FROM products WHERE ?",
-            { stock_quantity : stock_quantity},
+            "SELECT item_id, product_name, price, stock_quantity FROM products WHERE ?",
+            { item_id : item_id},
             function(err, res) {
                 if (err) throw err;
                 res.forEach(element => {
-                    if (answer.stock_quantity > element.stock_quantity) {
+                    if (answer.stock_quantity < element.stock_quantity) {
                         connection.query("UPDATE products SET ? WHERE ?", [
                             {
-                                stock_quantity: stock_quantity - answer.stock_quantity,
+                                stock_quantity: element.stock_quantity - answer.stock_quantity
+                            },
+                            {
+                                item_id : item_id
                             },
                         ],
                         )
-                        console.log("Thank you for your order! Your total is " + (element.price * element.stock_quantity));
+                        console.log("Thank you for your order! Your total is $" + (element.price * answer.stock_quantity));
                     }
                     else {
-                        console.log("Insuffient Inventory!");
-                        connection.end();
+                        console.log("Insuffient Inventory!, try something else.");
+                        readProducts();
                     }
-                    
-                    console.log(element.item_id + " " + element.product_name + " " + "$" + element.price + "\n---------------------------------------------------------\n");
-
                 });
                 connection.end();
             }
@@ -156,45 +127,4 @@ function amountOfItem() {
     })
 };
 
-
-
-// function updateProduct() {
-//   console.log("Updating all Rocky Road quantities...\n");
-//   var query = connection.query(
-//     "UPDATE products SET ? WHERE ?",
-//     [
-//       {
-//         quantity: 100
-//       },
-//       {
-//         flavor: "Rocky Road"
-//       }
-//     ],
-//     function(err, res) {
-//       if (err) throw err;
-//       console.log(res.affectedRows + " products updated!\n");
-//       // Call deleteProduct AFTER the UPDATE completes
-//       deleteProduct();
-//     }
-//   );
-
-//   // logs the actual query being run
-//   console.log(query.sql);
-// }
-
-// function deleteProduct() {
-//   console.log("Deleting all strawberry icecream...\n");
-//   connection.query(
-//     "DELETE FROM products WHERE ?",
-//     {
-//       flavor: "strawberry"
-//     },
-//     function(err, res) {
-//       if (err) throw err;
-//       console.log(res.affectedRows + " products deleted!\n");
-//       // Call readProducts AFTER the DELETE completes
-//       readProducts();
-//     }
-//   );
-// }
 
